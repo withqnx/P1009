@@ -3,8 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title data-text="title">소리를 담는 글자, 한글 - 참여하기</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>참여하기 - 소리를 담는 글자, 한글</title>
+  <link rel="stylesheet" href="/style.css?v=20251001">
+  <style>
+    .pill { font-size:12px; padding:6px 10px; background:#EEF2FF; color:#4F46E5; border-radius:999px; font-weight:700; display:inline-block; }
+    .hint { color:#6B7280; font-size:13px; }
+    .success { background:#ECFDF5; color:#065F46; padding:10px 12px; border-radius:10px; font-weight:600; }
+    .error { background:#FEF2F2; color:#991B1B; padding:10px 12px; border-radius:10px; font-weight:600; }
+    .ghost { background:#E5E7EB !important; color:#111 !important; }
+    .hidden { display:none !important; }
+    .stack { display:grid; gap:10px; }
+    .row   { display:grid; gap:8px; }
+    .two   { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 540px){ .two{ grid-template-columns:1fr; } }
+    a.btn.disabled{ pointer-events:none; opacity:.5; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -17,43 +30,75 @@
       </nav>
     </header>
 
-    <section class="hero card">
-      <div>
-        <div class="title" data-text="participateTitle">소리를 담고, 소리를 남기다</div>
-        <div class="subtitle" data-text="participateSubtitle">의성어·의태어를 입력하고 직접 소리 내어 녹음해 주세요.</div>
-      </div>
+    <section class="card">
+      <span class="pill">참여하기</span>
+      <h1 data-text="participateTitle">소리를 담고, 소리를 남기다</h1>
+      <p class="lead" data-text="participateSubtitle">[의성어]
+<br>사물의 소리를 본뜬 말.
+<br>
+<br>우리 주변의 소리들을 글자로 남겨주세요.
+<br>의성어를 직접 녹음하고, 설명을 작성해주세요.
+<br>그리고, 직접 의성어를 녹음해주세요.
+<br>
+<br>여러분만의 특이하고 독창적인 의성어도 좋습니다.</p>
     </section>
 
-    <section class="card">
-      <h1>참여하기</h1>
-      <p class="lead">예) 단어 <b>사각사각</b> → 녹음 → 설명 “사과를 씹을 때 나는 달콤한 소리를 표현해봤어요.”</p>
-
-      <label for="word">단어 (의성어·의태어)</label>
-      <input id="word" type="text" placeholder="예: 사각사각" maxlength="50" />
-
-      <label for="description">설명</label>
-      <textarea id="description" placeholder="왜 이 단어를 선택했는지, 어떤 순간의 소리인지 적어주세요." maxlength="1000"></textarea>
-
-      <label>녹음</label>
-      <div class="controls">
-        <button id="recordBtn">녹음 시작</button>
-        <button id="stopBtn" class="secondary" disabled>정지</button>
-        <button id="playBtn" class="secondary" disabled>미리 듣기</button>
-        <button id="resetBtn" class="secondary" disabled>다시 녹음</button>
+    <section class="card stack">
+      <div class="row">
+        <label for="word">단어 (의성어·의태어) <span class="hint">예: 사각사각, 철썩, 바스락</span></label>
+        <input id="word" type="text" placeholder="예: 사각사각">
       </div>
-      <div id="playerWrap"></div>
-      <div class="notice">마이크 권한이 필요합니다. Chrome/Edge 권장.</div>
 
-      <div style="margin-top:16px;">
-        <button id="submitBtn" disabled>제출하기</button>
+      <div class="two">
+        <div class="row">
+          <label for="category">분류(선택)</label>
+          <select id="category">
+            <option value="">선택 안 함</option>
+            <option>자연/날씨</option>
+            <option>음식/식감</option>
+            <option>도시/교통</option>
+            <option>사람/감정</option>
+            <option>기타</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>녹음</label>
+          <div class="controls">
+            <button id="recBtn">● 녹음 시작</button>
+            <button id="stopBtn" class="secondary" disabled>정지</button>
+            <button id="playBtn" class="secondary" disabled>미리듣기</button>
+            <span id="recStatus" class="notice">마이크 권한을 허용해 주세요.</span>
+          </div>
+          <audio id="preview" controls class="hidden"></audio>
+        </div>
       </div>
-      <div id="status" class="notice"></div>
+
+      <div class="row">
+        <label for="description">왜 이 소리를 선택했나요?</label>
+        <textarea id="description" placeholder="예: 사과를 씹을 때 나는 달콤하고 아삭한 느낌을 담았어요."></textarea>
+      </div>
+
+      <div class="two">
+        <div class="controls">
+          <button id="submitBtn" disabled>제출하기</button>
+          <span id="submitStatus" class="notice"></span>
+        </div>
+
+        <div class="controls" style="justify-content:flex-end;">
+          <a id="toGalleryBtn" class="btn ghost disabled" href="/gallery.html" aria-disabled="true">전시관으로 가기</a>
+        </div>
+      </div>
+
+      <div id="toast" class="success hidden">제출이 완료되었습니다. 전시관으로 이동합니다…</div>
+      <div id="toastErr" class="error hidden"></div>
     </section>
 
     <footer data-text="footer">© 2025 withqnx</footer>
   </div>
 
-  <script src="/index.js"></script>
-  <script src="/text.js"></script>
+  <!-- 새로 추가된 스크립트 -->
+  <script src="/participate.js?v=20251001"></script>
+  <script src="/text.js?v=20251001"></script>
 </body>
 </html>
