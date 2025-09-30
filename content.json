@@ -1,0 +1,62 @@
+{
+  "texts": {
+    "title": "소리를 담은 글자, 한글",
+    "subtitle": "소리를 본따 만든 글자.\n소리를 담은 글자, 한글.\n\n한글이 진정 그렇게 탄생한 거라면\n\n한글은 모든 소리를 품을 수 있음을 \n모든 소리를 표현할 수 있음을 \n실험해 보고 싶습니다.\n\n소리를 담은 글자, 그 첫 걸음\n\n[의성어]\n사물의 소리를 본뜬 말.",
+    "participateTitle": "소리를 담고, 소리를 남기다",
+    "participateSubtitle": "\n\n[의성어]\n사물의 소리를 본뜬 말.\n\n우리 주변의 소리들을 글자로 남겨주세요.\n의성어를 직접 녹음하고, 설명을 작성해주세요.\n그리고, 직접 의성어를 녹음해주세요.\n\n여러분만의 특이하고 독창적인 의성어도 좋습니다.",
+    "galleryTitle": "글자 전시관",
+    "gallerySubtitle": "\n\n[의성어]\n사물의 소리를 본뜬 말.\n\n무궁무진한 표현이 가능한 한글의 가능성을\n같이 듣고 즐겨볼까요?",
+    "footer": "© 2025 withqnx"
+  },
+  "styles": {
+    "title": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    },
+    "subtitle": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    },
+    "participateTitle": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    },
+    "participateSubtitle": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    },
+    "galleryTitle": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    },
+    "gallerySubtitle": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    },
+    "footer": {
+      "size": "",
+      "color": "#000000",
+      "align": "",
+      "weight": "",
+      "lineHeight": ""
+    }
+  }
+}

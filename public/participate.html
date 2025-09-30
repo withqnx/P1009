@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-text="title">소리를 담는 글자, 한글 - 참여하기</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo" data-text="title">소리를 담는 글자, 한글</div>
+      <nav>
+        <a href="/">홈</a>
+        <a href="/gallery.html">전시관</a>
+        <a href="/admin.html" style="opacity:.6">관리</a>
+      </nav>
+    </header>
+
+    <section class="hero card">
+      <div>
+        <div class="title" data-text="participateTitle">소리를 담고, 소리를 남기다</div>
+        <div class="subtitle" data-text="participateSubtitle">의성어·의태어를 입력하고 직접 소리 내어 녹음해 주세요.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h1>참여하기</h1>
+      <p class="lead">예) 단어 <b>사각사각</b> → 녹음 → 설명 “사과를 씹을 때 나는 달콤한 소리를 표현해봤어요.”</p>
+
+      <label for="word">단어 (의성어·의태어)</label>
+      <input id="word" type="text" placeholder="예: 사각사각" maxlength="50" />
+
+      <label for="description">설명</label>
+      <textarea id="description" placeholder="왜 이 단어를 선택했는지, 어떤 순간의 소리인지 적어주세요." maxlength="1000"></textarea>
+
+      <label>녹음</label>
+      <div class="controls">
+        <button id="recordBtn">녹음 시작</button>
+        <button id="stopBtn" class="secondary" disabled>정지</button>
+        <button id="playBtn" class="secondary" disabled>미리 듣기</button>
+        <button id="resetBtn" class="secondary" disabled>다시 녹음</button>
+      </div>
+      <div id="playerWrap"></div>
+      <div class="notice">마이크 권한이 필요합니다. Chrome/Edge 권장.</div>
+
+      <div style="margin-top:16px;">
+        <button id="submitBtn" disabled>제출하기</button>
+      </div>
+      <div id="status" class="notice"></div>
+    </section>
+
+    <footer data-text="footer">© 2025 withqnx</footer>
+  </div>
+
+  <script src="/index.js"></script>
+  <script src="/text.js"></script>
+</body>
+</html>

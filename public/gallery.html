@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-text="galleryTitle">소리를 담는 글자, 한글 - 전시관</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo" data-text="title">소리를 담는 글자, 한글</div>
+      <nav>
+        <a href="/">홈</a>
+        <a href="/participate.html">참여하기</a>
+        <a href="/admin.html" style="opacity:.6">관리</a>
+      </nav>
+    </header>
+
+    <section class="hero card">
+      <div>
+        <div class="title" data-text="galleryTitle">온라인 전시관</div>
+        <div class="subtitle" data-text="gallerySubtitle">단어 카드를 눌러 직접 들어보세요.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div id="nowPlaying" class="now-playing" aria-live="polite" aria-atomic="true"></div>
+    </section>
+
+    <section class="card">
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <footer data-text="footer">© 2025 withqnx</footer>
+  </div>
+
+  <script src="/gallery.js"></script>
+  <script src="/text.js"></script>
+</body>
+</html>

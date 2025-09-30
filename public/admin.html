@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>관리 - 소리를 담는 글자, 한글</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">관리 도구</div>
+      <nav>
+        <a href="/">홈</a>
+        <a href="/participate.html">참여하기</a>
+        <a href="/gallery.html">전시관</a>
+        <button id="logoutBtn" class="secondary" style="margin-left:12px;">로그아웃</button>
+      </nav>
+    </header>
+
+    <!-- 로그인 -->
+    <section id="loginSection" class="card">
+      <h1>관리자 로그인</h1>
+      <div class="form-grid">
+        <div class="row">
+          <label for="adminKey">관리자 키</label>
+          <input id="adminKey" type="password" placeholder="환경변수 CONTENT_ADMIN_KEY (기본: changeme)">
+          <div class="controls"><button id="loginBtn">로그인</button></div>
+          <div id="loginStatus" class="notice"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 문구 + 스타일 관리 -->
+    <section id="manageTexts" class="card hidden">
+      <h1>문구 & 스타일 관리</h1>
+      <p class="notice">각 항목별로 <b>크기/색/정렬/굵기/줄간격</b>을 직접 지정할 수 있습니다. 줄바꿈은 엔터로 입력하세요.</p>
+
+      <div id="editor" class="form-grid">
+        <!-- 각 항목은 admin.js에서 자동 생성 -->
+      </div>
+
+      <div class="controls">
+        <button id="saveBtn">저장</button>
+        <span class="status" id="status"></span>
+      </div>
+    </section>
+
+    <!-- 참가 내역 관리 -->
+    <section id="manageEntries" class="card hidden">
+      <h2>참가 내역 삭제</h2>
+      <p class="notice">단어로 필터링 후 개별 항목을 삭제할 수 있습니다.</p>
+      <div class="controls">
+        <input id="filterWord" type="text" placeholder="단어로 검색 (예: 사각사각)" />
+        <button id="loadEntriesBtn" class="secondary">목록 불러오기</button>
+      </div>
+      <div id="adminList" class="admin-list"></div>
+    </section>
+
+    <footer>© 2025 withqnx</footer>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
