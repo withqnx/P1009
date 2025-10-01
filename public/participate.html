@@ -12,9 +12,9 @@
     .stack { display:grid; gap:10px; }
     .row   { display:grid; gap:8px; }
     button[disabled]{opacity:.5; cursor:not-allowed;}
-    #messageBox { margin-top:20px; padding:10px; border-radius:8px; }
-    #messageBox.success { background:#ECFDF5; color:#065F46; }
-    #messageBox.error { background:#FEF2F2; color:#991B1B; }
+    #msg { margin-top:16px; padding:10px 12px; border-radius:10px; display:none; }
+    #msg.ok { background:#ECFDF5; color:#065F46; }
+    #msg.err{ background:#FEF2F2; color:#991B1B; }
   </style>
 </head>
 <body>
@@ -35,115 +35,147 @@
     </section>
 
     <section class="card stack">
-      <!-- 의성어 입력 -->
+      <!-- 의성어 -->
       <div class="row">
         <label for="word">단어 (의성어·의태어) <span class="hint">예: 사각사각, 철썩, 바스락</span></label>
         <input id="word" type="text" placeholder="예: 사각사각">
       </div>
 
-      <!-- 설명 입력 -->
+      <!-- 설명 -->
       <div class="row">
         <label for="description">설명</label>
-        <textarea id="description" rows="3" placeholder="왜 이 소리를 선택했는지 설명해 주세요."></textarea>
+        <textarea id="description" rows="3" placeholder="왜 이 소리를 선택했는지 한 줄로 적어주세요."></textarea>
       </div>
 
-      <!-- 녹음 컨트롤 -->
+      <!-- 녹음 -->
       <div class="row">
         <label>소리 녹음</label>
-        <div>
-          <button id="recordBtn">🎙 녹음 시작</button>
-          <button id="stopBtn" disabled>⏹ 녹음 정지</button>
-          <button id="playBtn" disabled>▶ 미리듣기</button>
+        <div class="controls" style="gap:8px;">
+          <button id="recBtn">🎙 녹음 시작</button>
+          <button id="stopBtn" class="secondary" disabled>⏹ 정지</button>
+          <button id="playBtn" class="secondary" disabled>▶ 미리듣기</button>
         </div>
-        <audio id="audioPreview" controls class="hidden"></audio>
+        <audio id="preview" controls class="hidden"></audio>
+        <div id="hint" class="notice">마이크 권한을 허용해 주세요.</div>
       </div>
 
       <!-- 제출 -->
-      <button id="submitBtn" disabled>제출하기</button>
-    </section>
+      <div class="controls">
+        <button id="submitBtn" disabled>제출하기</button>
+        <span id="status" class="notice"></span>
+      </div>
 
-    <section class="card hidden" id="messageBox"></section>
+      <div id="msg"></div>
+    </section>
   </div>
 
   <script>
-    const recordBtn = document.getElementById("recordBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const playBtn = document.getElementById("playBtn");
-    const submitBtn = document.getElementById("submitBtn");
-    const audioPreview = document.getElementById("audioPreview");
-    const messageBox = document.getElementById("messageBox");
+    // 요소
+    const $ = id => document.getElementById(id);
+    const word = $("word");
+    const description = $("description");
+    const recBtn = $("recBtn");
+    const stopBtn = $("stopBtn");
+    const playBtn = $("playBtn");
+    const preview = $("preview");
+    const submitBtn = $("submitBtn");
+    const statusEl = $("status");
+    const msg = $("msg");
+    const hint = $("hint");
 
-    let mediaRecorder, audioChunks = [], audioBlob;
+    // 상태
+    let mediaRecorder = null;
+    let chunks = [];
+    let audioBlob = null;
+
+    function normalize(s=""){ return String(s).trim(); }
+    function updateSubmitEnabled(){
+      const ok = normalize(word.value) && normalize(description.value) && !!audioBlob;
+      submitBtn.disabled = !ok;
+    }
 
     // 녹음 시작
-    recordBtn.onclick = async () => {
-      audioChunks = [];
-      try {
+    recBtn.addEventListener("click", async () => {
+      try{
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
         mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
         mediaRecorder.onstop = () => {
-          audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-          audioPreview.src = URL.createObjectURL(audioBlob);
-          audioPreview.classList.remove("hidden");
+          audioBlob = new Blob(chunks, { type: "audio/webm" });
+          preview.src = URL.createObjectURL(audioBlob);
+          preview.classList.remove("hidden");
           playBtn.disabled = false;
-          submitBtn.disabled = false;
+          hint.textContent = "녹음이 완료되었습니다. 미리듣기 가능.";
+          updateSubmitEnabled();
         };
+
         mediaRecorder.start();
-        recordBtn.disabled = true;
+        recBtn.disabled = true;
         stopBtn.disabled = false;
+        hint.textContent = "녹음 중…";
       } catch (err) {
-        showMessage("마이크 권한을 허용해주세요.", "error");
+        console.error(err);
+        hint.textContent = "마이크 권한이 필요합니다.";
       }
-    };
+    });
 
     // 녹음 정지
-    stopBtn.onclick = () => {
-      mediaRecorder.stop();
-      recordBtn.disabled = false;
-      stopBtn.disabled = true;
-    };
-
-    // 미리듣기
-    playBtn.onclick = () => {
-      if (audioBlob) {
-        audioPreview.play();
+    stopBtn.addEventListener("click", () => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        stopBtn.disabled = true;
+        recBtn.disabled = false;
       }
-    };
+    });
 
-    // 제출
-    submitBtn.onclick = async () => {
-      const word = document.getElementById("word").value.trim();
-      const description = document.getElementById("description").value.trim();
-      if (!word || !description || !audioBlob) {
-        showMessage("단어, 설명, 녹음 모두 필요합니다.", "error");
-        return;
+    // 미리듣기 (사용자 클릭 시에만 재생)
+    playBtn.addEventListener("click", () => {
+      if (preview.src) {
+        preview.currentTime = 0;
+        preview.play().catch(()=>{});
       }
-      const formData = new FormData();
-      formData.append("word", word);
-      formData.append("description", description);
-      formData.append("audio", audioBlob, "recording.webm");
+    });
 
-      try {
-        const res = await fetch("/api/submit", { method:"POST", body:formData });
-        const data = await res.json();
-        if (data.ok) {
-          showMessage("제출 완료! 전시관에서 확인하세요.", "success");
-          submitBtn.disabled = true;
-          setTimeout(()=> window.location.href="/gallery", 1500);
-        } else {
-          throw new Error(data.error || "서버 오류");
-        }
-      } catch (err) {
-        showMessage("제출 실패: " + err.message, "error");
+    // 입력 변화로 제출 버튼 활성화
+    ["input","change"].forEach(ev=>{
+      word.addEventListener(ev, updateSubmitEnabled);
+      description.addEventListener(ev, updateSubmitEnabled);
+    });
+
+    // 제출 (전시관 자동 이동/버튼 변경 없음!)
+    submitBtn.addEventListener("click", async () => {
+      const w = normalize(word.value);
+      const d = normalize(description.value);
+      if (!w || !d || !audioBlob) { return; }
+
+      submitBtn.disabled = true;
+      statusEl.textContent = "제출 중…";
+      msg.style.display = "none"; msg.className = ""; msg.textContent = "";
+
+      try{
+        const fd = new FormData();
+        fd.append("word", w);
+        fd.append("description", d);
+        fd.append("audio", audioBlob, "voice.webm");
+
+        const r = await fetch("/api/submit", { method:"POST", body: fd });
+        const data = await r.json();
+        if (!r.ok || !data.ok) throw new Error(data.error || "서버 오류");
+
+        statusEl.textContent = "";
+        msg.textContent = "제출 완료! 상단 메뉴의 ‘전시관’에서 바로 확인하실 수 있어요.";
+        msg.className = "ok"; msg.classList.add("ok"); msg.style.display = "block";
+
+      }catch(e){
+        console.error(e);
+        statusEl.textContent = "";
+        msg.textContent = "제출 실패: " + (e.message || "오류");
+        msg.className = "err"; msg.classList.add("err"); msg.style.display = "block";
+        submitBtn.disabled = false; // 재시도 허용
       }
-    };
-
-    function showMessage(msg, type){
-      messageBox.textContent = msg;
-      messageBox.className = "card " + type;
-      messageBox.classList.remove("hidden");
-    }
+    });
   </script>
 </body>
 </html>
