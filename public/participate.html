@@ -69,113 +69,195 @@
     </section>
   </div>
 
-  <script>
-    // 요소
-    const $ = id => document.getElementById(id);
-    const word = $("word");
-    const description = $("description");
-    const recBtn = $("recBtn");
-    const stopBtn = $("stopBtn");
-    const playBtn = $("playBtn");
-    const preview = $("preview");
-    const submitBtn = $("submitBtn");
-    const statusEl = $("status");
-    const msg = $("msg");
-    const hint = $("hint");
+<script>
+  // ============ 유틸 =============
+  const $ = id => document.getElementById(id);
+  const word = $("word");
+  const description = $("description");
+  const recBtn = $("recBtn") || $("recordBtn");     // id가 다를 수도 있어 대비
+  const stopBtn = $("stopBtn");
+  const playBtn = $("playBtn");
+  const preview = $("preview") || $("audioPreview");
+  const submitBtn = $("submitBtn");
+  const statusEl = $("status") || $("submitStatus");
+  const msg = $("msg") || $("messageBox");
+  const hint = $("hint") || { textContent: "" };
 
-    // 상태
-    let mediaRecorder = null;
-    let chunks = [];
-    let audioBlob = null;
+  let mediaRecorder = null;
+  let chunks = [];
+  let audioBlob = null;
+  let chosenMime = null;
 
-    function normalize(s=""){ return String(s).trim(); }
-    function updateSubmitEnabled(){
-      const ok = normalize(word.value) && normalize(description.value) && !!audioBlob;
-      submitBtn.disabled = !ok;
-    }
+  function normalize(s=""){ return String(s).trim(); }
+  function updateSubmitEnabled(){
+    const ok = normalize(word?.value) && normalize(description?.value) && !!audioBlob;
+    if (submitBtn) submitBtn.disabled = !ok;
+  }
+  function showMsg(text, type="ok"){
+    if (!msg) return;
+    msg.textContent = text;
+    msg.className = (msg.className || "").replace(/\bok|err\b/g,"").trim();
+    msg.classList.remove("hidden");
+    msg.style.display = "block";
+    if (type === "err") msg.classList.add("err"); else msg.classList.add("ok");
+  }
 
-    // 녹음 시작
-    recBtn.addEventListener("click", async () => {
-      try{
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        chunks = [];
-        mediaRecorder = new MediaRecorder(stream);
-
-        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-          audioBlob = new Blob(chunks, { type: "audio/webm" });
-          preview.src = URL.createObjectURL(audioBlob);
-          preview.classList.remove("hidden");
-          playBtn.disabled = false;
-          hint.textContent = "녹음이 완료되었습니다. 미리듣기 가능.";
-          updateSubmitEnabled();
-        };
-
-        mediaRecorder.start();
-        recBtn.disabled = true;
-        stopBtn.disabled = false;
-        hint.textContent = "녹음 중…";
-      } catch (err) {
-        console.error(err);
-        hint.textContent = "마이크 권한이 필요합니다.";
+  // ============ MIME 선택 로직 (iOS 대응) =============
+  function pickBestMime(){
+    const candidates = [
+      "audio/mp4",           // iOS Safari가 가장 잘 재생 (AAC)
+      "audio/aac",
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+    ];
+    if (!window.MediaRecorder) return null;
+    for (const t of candidates){
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+        return t;
       }
-    });
+    }
+    return ""; // 브라우저가 알아서 정하도록
+  }
 
-    // 녹음 정지
-    stopBtn.addEventListener("click", () => {
+  // ============ 녹음 =============
+  async function startRec(){
+    try{
+      // 마이크 권한
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      chunks = [];
+
+      chosenMime = pickBestMime();
+      try {
+        mediaRecorder = chosenMime ? new MediaRecorder(stream, { mimeType: chosenMime }) 
+                                   : new MediaRecorder(stream);
+      } catch(e){
+        // 어떤 이유로 실패하면 기본 생성 시도
+        mediaRecorder = new MediaRecorder(stream);
+      }
+
+      mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+      mediaRecorder.onstop = ()=>{
+        // 수집된 청크로 Blob 생성 (타입은 우선 data의 type을 신뢰)
+        const blobType = (chunks[0] && chunks[0].type) ? chunks[0].type : (chosenMime || "audio/mp4");
+        audioBlob = new Blob(chunks, { type: blobType });
+        // 미리듣기 준비
+        preview.src = URL.createObjectURL(audioBlob);
+        preview.load();
+        preview.controls = true;
+        if (playBtn) playBtn.disabled = false;
+        hint.textContent = "녹음이 완료되었습니다. 미리듣기 가능.";
+        updateSubmitEnabled();
+      };
+
+      mediaRecorder.start();
+      if (recBtn) recBtn.disabled = true;
+      if (stopBtn) stopBtn.disabled = false;
+      hint.textContent = "녹음 중…";
+
+    }catch(err){
+      console.error("getUserMedia error:", err);
+      hint.textContent = "마이크 권한이 필요하거나, 이 브라우저에서 녹음이 지원되지 않습니다.";
+      // Fallback: 파일 업로드 카드 노출
+      document.querySelector("#fileFallbackWrap")?.classList.remove("hidden");
+    }
+  }
+
+  function stopRec(){
+    try{
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
-        stopBtn.disabled = true;
-        recBtn.disabled = false;
       }
-    });
+    } finally {
+      if (stopBtn) stopBtn.disabled = true;
+      if (recBtn) recBtn.disabled = false;
+    }
+  }
 
-    // 미리듣기 (사용자 클릭 시에만 재생)
-    playBtn.addEventListener("click", () => {
-      if (preview.src) {
+  function playPreview(){
+    try{
+      if (preview && preview.src) {
         preview.currentTime = 0;
-        preview.play().catch(()=>{});
+        // 사용자 클릭 이벤트 안에서 play 호출 → 자동재생 차단 회피
+        const p = preview.play();
+        if (p && typeof p.catch === "function") p.catch(()=>{ /* 무음 차단 시 무시 */ });
       }
-    });
+    }catch(e){ console.warn("preview play error:", e); }
+  }
 
-    // 입력 변화로 제출 버튼 활성화
-    ["input","change"].forEach(ev=>{
-      word.addEventListener(ev, updateSubmitEnabled);
-      description.addEventListener(ev, updateSubmitEnabled);
-    });
+  // ============ 제출 =============
+  async function submitForm(){
+    const w = normalize(word?.value);
+    const d = normalize(description?.value);
+    if (!w || !d || !audioBlob) {
+      showMsg("단어, 설명, 녹음이 모두 필요합니다.", "err");
+      return;
+    }
+    submitBtn.disabled = true;
+    if (statusEl) statusEl.textContent = "제출 중…";
+    msg && (msg.style.display="none");
 
-    // 제출 (전시관 자동 이동/버튼 변경 없음!)
-    submitBtn.addEventListener("click", async () => {
-      const w = normalize(word.value);
-      const d = normalize(description.value);
-      if (!w || !d || !audioBlob) { return; }
+    try{
+      const fd = new FormData();
+      fd.append("word", w);
+      fd.append("description", d);
+      // 파일 확장자는 타입에 맞춰 대략 지정(서버는 MIME로 판단)
+      const ext = audioBlob.type.includes("mp4") || audioBlob.type.includes("aac") ? "m4a"
+                : audioBlob.type.includes("webm") ? "webm"
+                : audioBlob.type.includes("ogg") ? "ogg" : "audio";
+      fd.append("audio", audioBlob, `voice.${ext}`);
 
-      submitBtn.disabled = true;
-      statusEl.textContent = "제출 중…";
-      msg.style.display = "none"; msg.className = ""; msg.textContent = "";
+      const r = await fetch("/api/submit", { method:"POST", body: fd });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.error || "서버 오류");
 
-      try{
-        const fd = new FormData();
-        fd.append("word", w);
-        fd.append("description", d);
-        fd.append("audio", audioBlob, "voice.webm");
+      if (statusEl) statusEl.textContent = "";
+      showMsg("제출 완료! 상단 ‘전시관’에서 확인할 수 있어요.", "ok");
+      submitBtn.disabled = false; // 예전 폼처럼 자동 이동 없음
+    }catch(e){
+      console.error("submit error:", e);
+      if (statusEl) statusEl.textContent = "";
+      showMsg("제출 실패: " + (e.message || "오류"), "err");
+      submitBtn.disabled = false;
+    }
+  }
 
-        const r = await fetch("/api/submit", { method:"POST", body: fd });
-        const data = await r.json();
-        if (!r.ok || !data.ok) throw new Error(data.error || "서버 오류");
+  // ============ 파일 업로드 Fallback =============
+  // MediaRecorder 미지원/실패 시: 사용자가 직접 녹음 파일을 올릴 수 있게
+  const fileInput = document.querySelector("#fileFallback");
+  fileInput?.addEventListener("change", async (e)=>{
+    const f = e.target.files?.[0];
+    if (!f) return;
+    audioBlob = f;
+    preview.src = URL.createObjectURL(f);
+    preview.load();
+    preview.controls = true;
+    if (playBtn) playBtn.disabled = false;
+    hint.textContent = "파일이 선택되었습니다. 미리듣기 가능.";
+    updateSubmitEnabled();
+  });
 
-        statusEl.textContent = "";
-        msg.textContent = "제출 완료! 상단 메뉴의 ‘전시관’에서 바로 확인하실 수 있어요.";
-        msg.className = "ok"; msg.classList.add("ok"); msg.style.display = "block";
+  // ============ 이벤트 바인딩 =============
+  recBtn?.addEventListener("click", startRec);
+  stopBtn?.addEventListener("click", stopRec);
+  playBtn?.addEventListener("click", playPreview);
+  submitBtn?.addEventListener("click", submitForm);
+  ["input","change"].forEach(ev=>{
+    word?.addEventListener(ev, updateSubmitEnabled);
+    description?.addEventListener(ev, updateSubmitEnabled);
+  });
 
-      }catch(e){
-        console.error(e);
-        statusEl.textContent = "";
-        msg.textContent = "제출 실패: " + (e.message || "오류");
-        msg.className = "err"; msg.classList.add("err"); msg.style.display = "block";
-        submitBtn.disabled = false; // 재시도 허용
-      }
-    });
-  </script>
+  // 초기 상태
+  updateSubmitEnabled();
+</script>
+
+<!-- MediaRecorder 실패 대비: 파일 업로드 fallback UI (필요 시 보이도록) -->
+<div id="fileFallbackWrap" class="hidden" style="margin-top:12px;">
+  <div class="notice" style="margin-bottom:6px;">
+    브라우저에서 녹음이 지원되지 않거나 권한이 거부되었습니다. 아래에서 녹음 파일을 업로드해 주세요.
+  </div>
+  <input id="fileFallback" type="file" accept="audio/*" />
+</div>
 </body>
 </html>
