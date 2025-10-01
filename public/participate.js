@@ -43,12 +43,22 @@ async function startRec(){
     chunks = [];
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = (e)=>{ if(e.data.size>0) chunks.push(e.data); };
-    mediaRecorder.onstop = ()=>{
-      audioBlob = new Blob(chunks, { type: "audio/webm" });
-      els.preview.src = URL.createObjectURL(audioBlob);
-      els.preview.classList.remove("hidden");
-      els.playBtn.disabled = false;
-      els.recStatus.textContent = "녹음 완료. 미리듣기 가능";
+    mediaRecorder.onstop = () => {
+      audioBlob = new Blob(chunks, { type: (chunks[0]?.type || "audio/mp4") });
+    
+      // 1) 먼저 컨트롤/표시 상태를 켜고
+      preview.controls = true;
+      preview.classList.remove("hidden");
+      preview.classList.add("audio-visible");
+
+      // 2) 그 다음 src를 세팅하고
+      preview.src = URL.createObjectURL(audioBlob);
+
+      // 3) 마지막으로 load() 호출 (iOS에서 컨트롤 표시가 더 안정적)
+      preview.load();
+
+      playBtn.disabled = false;
+      hint.textContent = "녹음이 완료되었습니다. 미리듣기 가능.";
       updateSubmitEnabled();
     };
     mediaRecorder.start();
