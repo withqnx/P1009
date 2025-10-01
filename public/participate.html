@@ -4,101 +4,146 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>참여하기 - 소리를 담는 글자, 한글</title>
-  <link rel="stylesheet" href="/style.css?v=20251001">
+  <link rel="stylesheet" href="/style.css">
   <style>
     .pill { font-size:12px; padding:6px 10px; background:#EEF2FF; color:#4F46E5; border-radius:999px; font-weight:700; display:inline-block; }
     .hint { color:#6B7280; font-size:13px; }
-    .success { background:#ECFDF5; color:#065F46; padding:10px 12px; border-radius:10px; font-weight:600; }
-    .error { background:#FEF2F2; color:#991B1B; padding:10px 12px; border-radius:10px; font-weight:600; }
-    .ghost { background:#E5E7EB !important; color:#111 !important; }
     .hidden { display:none !important; }
     .stack { display:grid; gap:10px; }
     .row   { display:grid; gap:8px; }
-    .two   { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    @media (max-width: 540px){ .two{ grid-template-columns:1fr; } }
-    a.btn.disabled{ pointer-events:none; opacity:.5; }
+    button[disabled]{opacity:.5; cursor:not-allowed;}
+    #messageBox { margin-top:20px; padding:10px; border-radius:8px; }
+    #messageBox.success { background:#ECFDF5; color:#065F46; }
+    #messageBox.error { background:#FEF2F2; color:#991B1B; }
   </style>
 </head>
 <body>
   <div class="container">
     <header class="header">
-      <div class="logo" data-text="title">소리를 담는 글자, 한글</div>
+      <div class="logo">소리를 담는 글자, 한글</div>
       <nav>
         <a href="/">홈</a>
-        <a href="/gallery.html">전시관</a>
-        <a href="/admin.html" style="opacity:.6">관리</a>
+        <a href="/gallery">전시관</a>
+        <a href="/admin" style="opacity:.6">관리</a>
       </nav>
     </header>
 
     <section class="card">
       <span class="pill">참여하기</span>
-      <h1 data-text="participateTitle">소리를 담고, 소리를 남기다</h1>
-      <p class="lead" data-text="participateSubtitle">[의성어]
-<br>사물의 소리를 본뜬 말.
-<br>
-<br>우리 주변의 소리들을 글자로 남겨주세요.
-<br>의성어를 직접 녹음하고, 설명을 작성해주세요.
-<br>그리고, 직접 의성어를 녹음해주세요.
-<br>
-<br>여러분만의 특이하고 독창적인 의성어도 좋습니다.</p>
+      <h1>소리를 담고, 소리를 남기다</h1>
+      <p class="lead">의성어·의태어를 입력하고 직접 소리 내어 녹음해 주세요.</p>
     </section>
 
     <section class="card stack">
+      <!-- 의성어 입력 -->
       <div class="row">
         <label for="word">단어 (의성어·의태어) <span class="hint">예: 사각사각, 철썩, 바스락</span></label>
         <input id="word" type="text" placeholder="예: 사각사각">
       </div>
 
-      <div class="two">
-        <div class="row">
-          <label for="category">분류(선택)</label>
-          <select id="category">
-            <option value="">선택 안 함</option>
-            <option>자연/날씨</option>
-            <option>음식/식감</option>
-            <option>도시/교통</option>
-            <option>사람/감정</option>
-            <option>기타</option>
-          </select>
-        </div>
-
-        <div class="row">
-          <label>녹음</label>
-          <div class="controls">
-            <button id="recBtn">● 녹음 시작</button>
-            <button id="stopBtn" class="secondary" disabled>정지</button>
-            <button id="playBtn" class="secondary" disabled>미리듣기</button>
-            <span id="recStatus" class="notice">마이크 권한을 허용해 주세요.</span>
-          </div>
-          <audio id="preview" controls class="hidden"></audio>
-        </div>
-      </div>
-
+      <!-- 설명 입력 -->
       <div class="row">
-        <label for="description">왜 이 소리를 선택했나요?</label>
-        <textarea id="description" placeholder="예: 사과를 씹을 때 나는 달콤하고 아삭한 느낌을 담았어요."></textarea>
+        <label for="description">설명</label>
+        <textarea id="description" rows="3" placeholder="왜 이 소리를 선택했는지 설명해 주세요."></textarea>
       </div>
 
-      <div class="two">
-        <div class="controls">
-          <button id="submitBtn" disabled>제출하기</button>
-          <span id="submitStatus" class="notice"></span>
+      <!-- 녹음 컨트롤 -->
+      <div class="row">
+        <label>소리 녹음</label>
+        <div>
+          <button id="recordBtn">🎙 녹음 시작</button>
+          <button id="stopBtn" disabled>⏹ 녹음 정지</button>
+          <button id="playBtn" disabled>▶ 미리듣기</button>
         </div>
-
-        <div class="controls" style="justify-content:flex-end;">
-          <a id="toGalleryBtn" class="btn ghost disabled" href="/gallery.html" aria-disabled="true">전시관으로 가기</a>
-        </div>
+        <audio id="audioPreview" controls class="hidden"></audio>
       </div>
 
-      <div id="toast" class="success hidden">제출이 완료되었습니다. 전시관으로 이동합니다…</div>
-      <div id="toastErr" class="error hidden"></div>
+      <!-- 제출 -->
+      <button id="submitBtn" disabled>제출하기</button>
     </section>
 
-    <footer data-text="footer">© 2025 withqnx</footer>
+    <section class="card hidden" id="messageBox"></section>
   </div>
 
-  <!-- 새로 추가된 스크립트 -->
-  <script src="/participate.js?v=20251001"></script>
-  <script src="/text.js?v=20251001"></script>
+  <script>
+    const recordBtn = document.getElementById("recordBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const playBtn = document.getElementById("playBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const audioPreview = document.getElementById("audioPreview");
+    const messageBox = document.getElementById("messageBox");
+
+    let mediaRecorder, audioChunks = [], audioBlob;
+
+    // 녹음 시작
+    recordBtn.onclick = async () => {
+      audioChunks = [];
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+          audioPreview.src = URL.createObjectURL(audioBlob);
+          audioPreview.classList.remove("hidden");
+          playBtn.disabled = false;
+          submitBtn.disabled = false;
+        };
+        mediaRecorder.start();
+        recordBtn.disabled = true;
+        stopBtn.disabled = false;
+      } catch (err) {
+        showMessage("마이크 권한을 허용해주세요.", "error");
+      }
+    };
+
+    // 녹음 정지
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      recordBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    // 미리듣기
+    playBtn.onclick = () => {
+      if (audioBlob) {
+        audioPreview.play();
+      }
+    };
+
+    // 제출
+    submitBtn.onclick = async () => {
+      const word = document.getElementById("word").value.trim();
+      const description = document.getElementById("description").value.trim();
+      if (!word || !description || !audioBlob) {
+        showMessage("단어, 설명, 녹음 모두 필요합니다.", "error");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("word", word);
+      formData.append("description", description);
+      formData.append("audio", audioBlob, "recording.webm");
+
+      try {
+        const res = await fetch("/api/submit", { method:"POST", body:formData });
+        const data = await res.json();
+        if (data.ok) {
+          showMessage("제출 완료! 전시관에서 확인하세요.", "success");
+          submitBtn.disabled = true;
+          setTimeout(()=> window.location.href="/gallery", 1500);
+        } else {
+          throw new Error(data.error || "서버 오류");
+        }
+      } catch (err) {
+        showMessage("제출 실패: " + err.message, "error");
+      }
+    };
+
+    function showMessage(msg, type){
+      messageBox.textContent = msg;
+      messageBox.className = "card " + type;
+      messageBox.classList.remove("hidden");
+    }
+  </script>
 </body>
 </html>
