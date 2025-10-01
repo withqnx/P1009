@@ -1,4 +1,13 @@
 // server.js
+// ───────────────────────────────────────────────────────────
+// Render Starter + Persistent Disk 대응 완전판
+// - DATA_DIR(기본: /var/data) 아래에 모든 지속 데이터 보관
+//   • /var/data/db.sqlite
+//   • /var/data/uploads/* (오디오 파일)
+//   • /var/data/content.json (관리자 문구/스타일)
+// - 예쁜 URL: /participate, /gallery, /admin
+// ───────────────────────────────────────────────────────────
+
 import express from "express";
 import multer from "multer";
 import path from "path";
@@ -16,28 +25,45 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ------------------------------------
-// 정적/공통
-// ------------------------------------
+// ───────────────────────────────────────────────────────────
+// 경로/디렉터리
+// ───────────────────────────────────────────────────────────
 const PUBLIC_DIR = path.join(__dirname, "public");
-const UPLOAD_DIR = path.join(__dirname, "uploads");
+
+// 영구 데이터 루트(환경변수 없으면 /var/data 사용)
+const DATA_DIR = process.env.DATA_DIR || "/var/data";
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+// 업로드 디렉터리(영구)
+const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
+// content.json(영구)
+const CONTENT_PATH = path.join(DATA_DIR, "content.json");
+
+// 정적 서빙
 app.use(express.static(PUBLIC_DIR));
 app.use("/uploads", express.static(UPLOAD_DIR));
+
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (_req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
-});
+// 예쁜 URL (실제 파일은 /public/*.html)
+app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/participate", (_req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "participate.html"))
+);
+app.get("/gallery", (_req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "gallery.html"))
+);
+app.get("/admin", (_req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "admin.html"))
+);
 
-// ------------------------------------
-// 콘텐츠 관리 (텍스트 + 스타일)
-// ------------------------------------
-const CONTENT_PATH = path.join(__dirname, "content.json");
-
+// ───────────────────────────────────────────────────────────
+// 콘텐츠(문구/스타일) 관리
+// ───────────────────────────────────────────────────────────
 const DEFAULT_TEXTS = {
   title: "소리를 담는 글자, 한글",
   subtitle: "의성어·의태어를 직접 말하고 기록해 한글날 디지털 아카이브로 남겨요.",
@@ -47,8 +73,6 @@ const DEFAULT_TEXTS = {
   gallerySubtitle: "단어 카드를 눌러 직접 들어보세요.",
   footer: "© 2025 withqnx"
 };
-
-// 항목별 스타일 기본값
 const DEFAULT_STYLES = {
   title:              { size: "", color: "", align: "", weight: "", lineHeight: "" },
   subtitle:           { size: "", color: "", align: "", weight: "", lineHeight: "" },
@@ -69,7 +93,9 @@ function loadContent() {
       const styles = { ...DEFAULT_STYLES, ...(raw.styles || {}) };
       return { texts, styles };
     }
-  } catch (e) { console.warn("content.json 읽기 실패:", e); }
+  } catch (e) {
+    console.warn("content.json 읽기 실패:", e);
+  }
   return { texts: { ...DEFAULT_TEXTS }, styles: { ...DEFAULT_STYLES } };
 }
 
@@ -100,6 +126,7 @@ function saveContent(payload) {
   return out;
 }
 
+// content.json 없으면 생성
 if (!fs.existsSync(CONTENT_PATH)) saveContent({});
 
 // 공개 조회
@@ -122,11 +149,11 @@ app.post("/api/content", (req, res) => {
   res.json({ ok: true, content: saved });
 });
 
-// ------------------------------------
-// DB (sqlite3) + 업로드
-// ------------------------------------
+// ───────────────────────────────────────────────────────────
+// DB (SQLite) & 업로드 설정  — 모두 영구 디스크로
+// ───────────────────────────────────────────────────────────
 sqlite3.verbose();
-const dbPath = path.join(__dirname, "db.sqlite");
+const dbPath = path.join(DATA_DIR, "db.sqlite");
 const db = new sqlite3.Database(dbPath);
 const dbRun = promisify(db.run.bind(db));
 const dbAll = promisify(db.all.bind(db));
@@ -155,21 +182,28 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
+// 제출
 app.post("/api/submit", upload.single("audio"), async (req, res) => {
   try {
     const { word, description, category } = req.body;
-    if (!word || !description || !req.file) return res.status(400).json({ ok: false, error: "필수 항목 누락" });
+    if (!word || !description || !req.file) {
+      return res.status(400).json({ ok: false, error: "필수 항목 누락" });
+    }
     const safeWord = sanitize(String(word)).trim().slice(0, 50);
     const safeDesc = String(description).trim().slice(0, 1000);
     const id = crypto.randomUUID();
     const audioPath = `/uploads/${req.file.filename}`;
     const cat = category && category !== "" ? category : "기타";
+
     await dbRun(
       `INSERT INTO entries (id, word, description, audio_path, category) VALUES (?,?,?,?,?)`,
       [id, safeWord, safeDesc, audioPath, cat]
     );
     res.json({ ok: true, id });
-  } catch (err) { console.error(err); res.status(500).json({ ok: false, error: "서버 오류" }); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "서버 오류" });
+  }
 });
 
 // 목록/필터
@@ -192,7 +226,10 @@ app.get("/api/list", async (req, res) => {
       );
     }
     res.json({ ok: true, items });
-  } catch (err) { console.error(err); res.status(500).json({ ok: false, error: "서버 오류" }); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "서버 오류" });
+  }
 });
 
 // 삭제(관리자)
@@ -200,18 +237,27 @@ app.delete("/api/entry/:id", async (req, res) => {
   try {
     const key = req.headers["x-admin-key"];
     if (key !== ADMIN_KEY) return res.status(401).json({ ok: false, error: "unauthorized" });
+
     const id = req.params.id;
     const row = await dbGet(`SELECT id, audio_path FROM entries WHERE id = ?`, [id]);
     if (!row) return res.status(404).json({ ok: false, error: "not_found" });
+
     await dbRun(`DELETE FROM entries WHERE id = ?`, [id]);
+    // 파일 제거
     if (row.audio_path && row.audio_path.startsWith("/uploads/")) {
-      const full = path.join(__dirname, row.audio_path);
+      const full = path.join(UPLOAD_DIR, path.basename(row.audio_path));
       fs.promises.unlink(full).catch(() => {});
     }
     res.json({ ok: true, id });
-  } catch (err) { console.error(err); res.status(500).json({ ok: false, error: "서버 오류" }); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "서버 오류" });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`✅ 서버 실행 중: http://localhost:${PORT}`);
+  console.log(`   DATA_DIR: ${DATA_DIR}`);
+  console.log(`   UPLOAD_DIR: ${UPLOAD_DIR}`);
+  console.log(`   DB: ${dbPath}`);
 });
