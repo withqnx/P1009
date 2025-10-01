@@ -107,3 +107,5 @@ a.btn.ghost{ background:#E5E7EB; color:#111; }
   .grid{ grid-template-columns: 1fr; }
   .now-playing{ height:110px; }
 }
+audio { width: 100%; min-height: 32px; }  /* 네이티브 재생바가 보이도록 최소 높이 */
+.audio-visible { display: block !important; }  /* 우리가 보여줄 때 쓰는 클래스 */
